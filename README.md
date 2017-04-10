@@ -1,37 +1,6 @@
-## Welcome to GitHub Pages
+#Creating a network diagram of your workplace
+---
+For a presentation at work recently I wanted to create a visualization of a social network to highlight the kinds of insights that can be derived from social network analysis. Social networks are particularly useful for revealing indirect patterns in connected data (e.g. 'friends of friends' relationships). I decided to build a network based on the people at my [workplace](http://www.sei-international.org), showing how individuals could be linked to one another based on shared authorship in publications.  When plotted in a network diagram, one can quickly identify clusters of highly connected individuals, as well as guage 'importance' by the connectedness or centrality of any individual.  
+[Check out the the result](http://fickse.github.io/graph_demo/sei_network.html) (it takes a minute to load).
 
-You can use the [editor on GitHub](https://github.com/fickse/graph_demo/edit/master/README.md) to maintain and preview the content for your website in Markdown files.
-
-Whenever you commit to this repository, GitHub Pages will run [Jekyll](https://jekyllrb.com/) to rebuild the pages in your site, from the content in your Markdown files.
-
-### Markdown
-
-Markdown is a lightweight and easy-to-use syntax for styling your writing. It includes conventions for
-
-```markdown
-Syntax highlighted code block
-
-# Header 1
-## Header 2
-### Header 3
-
-- Bulleted
-- List
-
-1. Numbered
-2. List
-
-**Bold** and _Italic_ and `Code` text
-
-[Link](url) and ![Image](src)
-```
-
-For more details see [GitHub Flavored Markdown](https://guides.github.com/features/mastering-markdown/).
-
-### Jekyll Themes
-
-Your Pages site will use the layout and styles from the Jekyll theme you have selected in your [repository settings](https://github.com/fickse/graph_demo/settings). The name of this theme is saved in the Jekyll `_config.yml` configuration file.
-
-### Support or Contact
-
-Having trouble with Pages? Check out our [documentation](https://help.github.com/categories/github-pages-basics/) or [contact support](https://github.com/contact) and we’ll help you sort it out.
+Much thanks to the excellent work of [Nicole White](https://nicolewhite.github.io/), author of the RNeo4J R package and [this] excellent tutorial.
