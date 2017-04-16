@@ -1,39 +1,73 @@
-#setwd("C:/projects/graph/demo")
+  
+# This script scrapes information about SEI employees, including their
+# projects, papers, and the center they work at. 
+  
+  #setwd("C:/projects/graph/graph_demo")
+
+  library(RNeo4j)
+  library(visNetwork)
+  library(igraph)
+  
+  reset_graph = TRUE # clear nodes and relationships before inputing data?  
+  
 
 # get list of staff ids
   # read in raw html
-  x <- readLines("https://www.sei-international.org/staff")
-  x <- paste(x, collapse = ' ')
-  x <-  strsplit(x,'>')[[1]]
+  #setInternet2(TRUE)
+  h <- readLines("https://www.sei-international.org/staff")
+  x <- paste(h, collapse = ' ')
+  x <-  strsplit(x,'</p>')[[1]]
 
   s <- grep('staffid', x, v = T)
-
+  z <- grep('jpg',s) # remove items with pictures
+  if(length(z) > 0) s <- s[-z]
+  
 # Extract employee names and ids 
   emps <- c()
-  id <- c()
+  ids <- c()
 
   for( a in s ){
       
-      # Remove side panel  
-      b <-strsplit(a, '<p.*?>')[[1]]
-      ids <- gsub('.*?staffid=([0-9]{1,3})["].*', '\\1', b)
-      n <- gsub('.*?>(.*?)<.*', '\\1', b)
-      
-      emps <- c(emps, n)
-      id <- c(id, ids)
+      # Extracting desired text with regex  
+      id <- gsub('.*?staffid=([0-9]{1,3})["].*', '\\1', a)
+      name <- gsub('.*?<a .*?>(.*?)<.*', '\\1', a)
+
+      emps <- c(emps, name)
+      ids <- c(ids, id)
   
   }
 
-  emps <- emps[-grep('\\t', emps)]
-  id <- id[ -grep('\\t', id)]
+  # Try to deal with special characters
+  trans <- c(
+  "Ã¡" = "á",
+  "Ã©" = "é",
+  "Ã…" = "Å",
+  "Ã¶" = "ö",
+  "Ã–"="Ö",
+  'Ã¼' = "ü",
+  "Å¸" = "ß",
+  "Ã²" = "ò",
+  "Ãµ" = "õ",
+  "Å¡" = "š",
+  "Ã¸"  = "ø", 
+  "Ã¥" = "å",
+  "Ã¤" = "ä",
+   "Ã³"= "ó")
 
-# Extract publication list 
+  #try to fix special characters
+  for(j in names(trans)){
+    emps <- gsub(j, trans[j], emps)
+  }   
+
+# Extract publication list
+# This process could be optimized of course...
+ 
   E <- list()
 
-  for (i in 1:length(id)){
+  for (i in 1:length(ids)){
 
     p <- emps[i]
-    idz <- id[i]
+    idz <- ids[i]
     E[[p]] <- list(name = p, id = idz, 
     urlPage = paste0("https://www.sei-international.org/staff?staffid=", idz),
     urlPapers = paste0('https://www.sei-international.org/publications?author=', idz)
@@ -67,6 +101,17 @@
     return(e)
   }
 
+  getProjects <- function(eid){
+    urlPage = paste0("https://www.sei-international.org/staff?staffid=", eid)
+    b <- readLines(urlPage)
+    b <- paste(b, collapse = ' ')
+    k <-  strsplit(b,'</p>')[[1]]
+    s <- grep('prid=', k, value = TRUE)
+    pr_ids <- sapply(s, function(x) gsub('.*?prid=([0-9]{1,5}).*', '\\1', x))
+    names(pr_ids) <- sapply(s, function(x) gsub('.*?projects[?].*?>(.*?)</a>.*', '\\1', x))
+    return(pr_ids)
+  
+  }
 
   for (e in names(E)){
     print(E[[e]]$name)
@@ -77,16 +122,33 @@
     print(E[[e]]$name)
     E[[e]]$center <- getCenter(E[[e]]$id)
   }
+  
+  for (e in names(E)){
+    print(E[[e]]$name)
+    E[[e]]$projects <- getProjects(E[[e]]$id)
+  }
 
+  # worth saving this information
+  save(E, file = 'stored_data.RData')
 
 # store data in a graph database
-  library(RNeo4j)
+  
+  #note: must have Neo4J running in background
   graph = startGraph("http://localhost:7474/db/data/")
 
+  if(reset_graph){
+  
+    query = "MATCH (n) DETACH DELETE n"
+    cypher(graph,query)
+  }
+  
+  
   people = list()
   papers = list()
+  projects = list()
   rels  = list()
 
+  # Right. Creating a big ugly loop ... not the most elegant but easy to debug!
   for( person in E){
       cat(person$name, '\n');flush.console()
       
@@ -99,51 +161,58 @@
         p <-people[[person$name]]
       
       }
-      if (is.null(person$papers)) next() 
+      if (!is.null(person$papers)){ 
       
-      # create papers and add relationships between employees and papers
-      for (pp in 1:nrow(person$papers)){
-          paper <- person$papers[pp,]
-          
-          if (as.character(paper$pids) %in% names(papers)){
-              pper <- papers[[as.character(paper$pids)]]
-          } else {
-              pper <- createNode(graph, "Paper", pid = as.character(paper$pids), name= as.character(paper$pname))
-              papers[[as.character(paper$pids)]] <- pper
+          # create papers and add relationships between employees and papers
+          for (pp in 1:nrow(person$papers)){
+              paper <- person$papers[pp,]
+              
+              if (as.character(paper$pids) %in% names(papers)){
+                  pper <- papers[[as.character(paper$pids)]]
+              } else {
+                  pper <- createNode(graph, "Paper", pid = as.character(paper$pids), name= as.character(paper$pname))
+                  papers[[as.character(paper$pids)]] <- pper
+              }
+              
+              r <- paste0(person$name,'_AUTHOR_',paper$pids)
+              if (r %in% names(rels)) next()
+              rels[[r]] <- createRel(p, 'AUTHOR', pper)        
+              
           }
-          
-          createRel(p, 'AUTHOR', pper)        
-          
       }
-  }
+      
+      if (length(person$projects) > 0){
+          # create projects and add relationships between employees and projects
+          for (px in 1:length(person$projects)){
+              project <- person$projects[px]
+              
+              if (as.character(project) %in% names(projects)){
+                  prjct <- projects[[as.character(project)]]
+              } else {
+                  prjct <- createNode(graph, "Project", prid = as.character(project), name= names(person$projects[px]))
+                  projects[[as.character(project)]] <- prjct
+              }
+              
+              r <- paste0(person$name,'_AUTHOR_',project)
+              if(r %in% names(rels)) next()
+              rels[[r]] <- createRel(p, 'AUTHOR', prjct)        
+              
+              
+          }
+      }
+    }  
+      
+  
 
-  # quick way to deal with special characters
-  trans <- c(
-  "Ã¡" = "á",
-  "Ã©" = "é",
-  "Ã…" = "Å",
-  "Ã¶" = "ö",
-  "Ã–"="Ö",
-  'Ã¼' = "ü",
-  "Å¸" = "ß",
-  "Ã²" = "ò",
-  "Ãµ" = "õ",
-  "Å¡" = "š",
-  "Ã¸"  = "ø", 
-  "Ã¥" = "å",
-  "Ã¤" = "ä",
-   "Ã³"= "ó")
-
+  
  #############
 
   # Create visualizations
  
-  library(visNetwork)
-  library(igraph)
-
-  # Extract number of connections via papers
+  
+  # Extract number of connections via papers or projects
   query = "
-  MATCH (p1:Person)-[:AUTHOR]->(:Paper)<-[:AUTHOR]-(p2:Person)
+  MATCH (p1:Person)-[:AUTHOR]->()<-[:AUTHOR]-(p2:Person)
   WHERE p1.name < p2.name
   RETURN p1.name AS from, p2.name AS to, COUNT(*) AS weight
   "
@@ -153,12 +222,6 @@
   nodes = data.frame(id=unique(c(edges$from, edges$to)))
   nodes$label = nodes$id
   
-  #try to fix special characters
-  for(j in names(trans)){
-    nodes$label <- gsub(j, trans[j], nodes$label)
-  }
-
-
   # merge with information on centers
   q2 = " MATCH (p1:Person) RETURN p1.name AS name, p1.center as center"
   centers = cypher(graph,q2)
@@ -176,12 +239,13 @@
   nodes$value <-pubs$Pubs[match(nodes$id, pubs$label)]
 
   # output visualization
-  network <- visNetwork(nodes, edges) %>%
+  network <- visNetwork(nodes, edges, height = "600px", width = "100%") %>%
    visPhysics(solver = "forceAtlas2Based", 
-              forceAtlas2Based = list(gravitationalConstant = -10), stabilization = TRUE) %>%
+              forceAtlas2Based = list(gravitationalConstant = -10), stabilization = FALSE) %>%
               visLegend() %>%
               visOptions(selectedBy = "group", 
                highlightNearest = TRUE, 
                nodesIdSelection = TRUE) 
-               
+  
+  network  
   visSave(network, file = "sei_network.html")            
