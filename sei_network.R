@@ -239,7 +239,7 @@
   nodes$value <-pubs$Pubs[match(nodes$id, pubs$label)]
 
   # output visualization
-  network <- visNetwork(nodes, edges, height = "600px", width = "100%") %>%
+  network <- visNetwork(nodes, edges, height = "700px", width = "100%") %>%
    visPhysics(solver = "forceAtlas2Based", 
               forceAtlas2Based = list(gravitationalConstant = -10), stabilization = FALSE) %>%
               visLegend() %>%
@@ -247,5 +247,5 @@
                highlightNearest = TRUE, 
                nodesIdSelection = TRUE) 
   
-  network  
+  
   visSave(network, file = "sei_network.html")            

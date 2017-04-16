@@ -1,6 +1,6 @@
 # Creating a network diagram of your workplace
 ---
-For a presentation at work recently I wanted to create a visualization of a social network to highlight the kinds of insights that can be derived from social network analysis. Social networks are particularly useful for revealing indirect patterns in connected data (e.g. 'friends of friends' relationships).  
+For a presentation at work recently I wanted to create a visualization of a social network. Social networks are particularly useful for revealing indirect patterns in connected data (e.g. 'friends of friends' relationships).  
 
 ![alt text](Capture.PNG)
 
