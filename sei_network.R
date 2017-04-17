@@ -241,6 +241,8 @@
   # output visualization
   edges <- edges[order(edges$from),]
   nodes <- nodes[order(nodes$id),]
+  nodes$value[which(is.na(nodes$value))] <- 1
+
   network <- visNetwork(nodes, edges, height = "700px", width = "100%") %>%
    visPhysics(solver = "forceAtlas2Based", 
               forceAtlas2Based = list(gravitationalConstant = -10), stabilization = FALSE) %>%
@@ -253,11 +255,5 @@
   visSave(network, file = "sei_network.html")            
 
   # who is the most connected person?
-  library(igraph)
-  net <- graph.data.frame(edges, directed =F) 
-  which.max(degree(net))
-  labs <- 0:36
-  labs[which(0:35 %% 5 != 0)] <- NA
-  png('hist.png')
-  barplot(degree.distribution(net), names =labs, xlab = 'node degree', ylab = 'frequency', border = 'white')
-  dev.off()
+  sort(table(c(edges$from, edges$to)))
+  
