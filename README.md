@@ -8,3 +8,5 @@ I decided to build a network based on the people at my [workplace](http://www.se
 * [Check out the the result](http://fickse.github.io/graph_demo/sei_network.html) (it takes a minute to load)!
 * [Heres](sei_network.R) the code used to produce the diagram (fortunately SEI's website is easy to scrape!)  
 * Much thanks to the excellent work of [Nicole White](https://nicolewhite.github.io/), author of the [RNeo4J](https://neo4j.com/developer/r/) R package and [this](https://neo4j.com/blog/visualize-graph-with-rneo4j/) excellent tutorial.
+
+---
