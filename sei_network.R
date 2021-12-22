@@ -255,5 +255,5 @@
   visSave(network, file = "sei_network.html")            
 
   # who is the most connected person?
-  sort(table(c(edges$from, edges$to)))
+  rev(sort(table(c(edges$from, edges$to))))
   
